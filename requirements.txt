@@ -1,0 +1,13 @@
+Flask
+flask-cors
+python-dotenv
+requests
+beautifulsoup4
+azure-search-documents
+azure-core
+sentence-transformers
+groq
+pymupdf
+pysqlite3-binary; platform_system != "Windows"
+gunicorn
+numpy<2.0

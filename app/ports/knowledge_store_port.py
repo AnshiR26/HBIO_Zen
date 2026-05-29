@@ -1,0 +1,26 @@
+from typing import Protocol, Any
+
+
+class KnowledgeStorePort(Protocol):
+    def add_text_chunks(self, chunks, embeddings) -> int:
+        ...
+
+    def add_image_entries(self, image_entries, embeddings) -> int:
+        ...
+
+    def query_text_chunks(self, query_embedding, top_k: int = 4, filters: dict | None = None) -> list[dict[str, Any]]:
+        ...
+
+    def query_images(self, query_embedding, top_k: int = 2, filters: dict | None = None) -> list[dict[str, Any]]:
+        ...
+
+    def get_text_count(self) -> int:
+        ...
+
+    def get_image_count(self) -> int:
+        ...
+
+    def reset(self) -> None:
+        ...
+    def delete_by_source(self, source: str) -> None:
+        ...
