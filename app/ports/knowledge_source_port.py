@@ -10,3 +10,9 @@ class KnowledgeSourcePort(Protocol):
 
     def extract_text_and_images(self, article: dict) -> tuple[str, list[dict]]:
         ...
+
+    def fetch_article_attachments(self, article_id: int) -> list[dict]:
+        ...
+
+    def download_attachment(self, url: str) -> bytes:
+        ...

@@ -88,7 +88,75 @@ class SyncZendeskArticlesUseCase:
                chunks,
                embeddings,
            )
+
        # ----------------------------------------------------------
+       # Fetch and Ingest PDF Attachments (Manuals)
+       # ----------------------------------------------------------
+       try:
+           attachments = self.source.fetch_article_attachments(article_id)
+           pdf_chunks = []
+           
+           for attachment in attachments:
+               file_name = attachment.get("file_name", "")
+               content_type = attachment.get("content_type", "")
+               attachment_id = attachment.get("id")
+               
+               is_pdf = (content_type and content_type.lower() == "application/pdf") or file_name.lower().endswith(".pdf")
+               if not is_pdf:
+                   continue
+               
+               content_url = attachment.get("content_url")
+               if not content_url:
+                   continue
+               
+               print(f"  -> Processing PDF attachment: {file_name} (ID: {attachment_id})")
+               
+               try:
+                   pdf_bytes = self.source.download_attachment(content_url)
+                   
+                   import fitz  # PyMuPDF
+                   doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+                   
+                   for page_idx, page in enumerate(doc, start=1):
+                       page_text = page.get_text()
+                       if not page_text.strip():
+                           continue
+                       
+                       raw_page_chunks = self.chunker(page_text)
+                       for chunk_idx, chunk_text in enumerate(raw_page_chunks):
+                           chunk_id = f"{source_name}_pdf_{attachment_id}_p{page_idx}_c{chunk_idx}"
+                           pdf_chunks.append({
+                               "id": chunk_id,
+                               "text": chunk_text,
+                               "metadata": {
+                                   "source": source_name,
+                                   "page": page_idx,
+                                   "article_id": article_id,
+                                   "title": f"{title} - {file_name}",
+                                   "url": content_url,
+                                   "visibility": visibility,
+                                   "user_segment_id": str(article.get("user_segment_id") or ""),
+                                   "user_segment_ids": ",".join(str(x) for x in segment_ids),
+                                   "permission_group_id": str(article.get("permission_group_id") or ""),
+                                   "section_id": str(article.get("section_id") or ""),
+                                   "category_id": str(article.get("category_id") or ""),
+                                   "updated_at": updated_at,
+                               }
+                           })
+                   doc.close()
+               except Exception as ex:
+                   print(f"  [ERROR] Failed to process PDF {file_name} for article {article_id}: {ex}")
+           
+           if pdf_chunks:
+               print(f"  -> Ingesting {len(pdf_chunks)} text chunks from PDF manuals...")
+               pdf_embeddings = self.embedder.embed_texts([c["text"] for c in pdf_chunks])
+               self.knowledge_store.add_text_chunks(pdf_chunks, pdf_embeddings)
+               print(f"  -> Successfully ingested PDF manuals for article {article_id}")
+               
+       except Exception as e:
+           print(f"  [WARNING] Could not process attachments for article {article_id}: {e}")
+
+        # ----------------------------------------------------------
     #    # Ingest Images
     #    # ----------------------------------------------------------
     #    image_entries = []

@@ -80,3 +80,22 @@ class ZendeskHelpCenterSource:
                 })
  
         return text, images
+
+    def fetch_article_attachments(self, article_id: int) -> list[dict]:
+        url = f"https://{self.subdomain}.zendesk.com/api/v2/help_center/articles/{article_id}/attachments.json"
+        attachments = []
+
+        while url:
+            resp = requests.get(url, auth=self.auth)
+            resp.raise_for_status()
+            data = resp.json()
+
+            attachments.extend(data.get("article_attachments", []))
+            url = data.get("next_page")
+
+        return attachments
+
+    def download_attachment(self, url: str) -> bytes:
+        resp = requests.get(url, auth=self.auth)
+        resp.raise_for_status()
+        return resp.content

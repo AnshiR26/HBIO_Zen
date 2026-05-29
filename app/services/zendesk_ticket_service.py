@@ -4,9 +4,9 @@ import requests
 
 class ZendeskTicketService:
     def __init__(self, subdomain: str, email: str, api_token: str, sc_app_id: str = None, sc_key_id: str = None, sc_secret: str = None):
-        clean_subdomain = subdomain.strip()
-        clean_email = email.strip()
-        clean_token = api_token.strip()
+        clean_subdomain = (subdomain or "").strip()
+        clean_email = (email or "").strip()
+        clean_token = (api_token or "").strip()
 
         self.base_url   = f"https://{clean_subdomain}.zendesk.com"
         self.sc_app_id  = (sc_app_id  or "").strip()
